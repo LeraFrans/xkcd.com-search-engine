@@ -1,14 +1,8 @@
-
-
-
-
-
 build:
 	go build -o myapp main.go normalizator.go
 
 run:
 	go run main.go normalizator.go
-
 
 compile:
 	echo "Compiling for every OS and Platform"
