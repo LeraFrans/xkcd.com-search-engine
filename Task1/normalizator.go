@@ -20,7 +20,7 @@ func parsArguments() string {
 func trimPunctuation(st string) []string {
 	// Splyce string into words. Use lambda function as separator
 	return strings.FieldsFunc(st, func(symbol rune) bool {
-		// Split on any character that is not a letter or a number
+		// Split on any character that is not  a letter or a number
 		return !unicode.IsLetter(symbol) && !unicode.IsNumber(symbol)
 	})
 }
