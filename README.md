@@ -5,5 +5,5 @@
 
 Для запуска выполните следующие команды (из директории Task1):
 
-> make
-> myapp -s "i'll follow you as long as you are following me"
+>> make
+>> myapp -s "i'll follow you as long as you are following me"
