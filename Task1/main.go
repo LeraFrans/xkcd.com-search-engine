@@ -7,10 +7,8 @@ import (
 
 func main() {
 	parsedLine := parsArguments()
-	withoutPunctuationArray := trimPunctuation(strings.ToLower(parsedLine))
-	withoutCommonWordsArray := deleteMostCommon(withoutPunctuationArray)
-	result, err := stemming(withoutCommonWordsArray)
+	result, err := worldsNormalizator(parsedLine)
 	if err == nil {
-		fmt.Println(result)
+		fmt.Println(strings.Join(result, " "))
 	}
 }
