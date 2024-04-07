@@ -1,18 +1,19 @@
-// 
-// Не успела пока сделать пакетную структуру и флаги -о и -n (в модулях и пакетах запуталась окончательно, постараюсь в субботу разобраться)
-//
-// 1) У меня тут получилось, что половина кода это записи логов после каждого шага практически. Так и должно быть? (в первый раз такое делаю просто),
-// 2) Окей ли это, что мы сначала создаём мапу, записываем в неё все данные и только потом её полностью переписываем в json? Можно же ещё сначала сделать json и потом в него по одному добавлять данные о каждом комиксе сразу после получения их с сервера. Что будет эффективнее: работа с дополнительной мапой или постоянное обновление json "в реальном времени"?
-// 3) Собрала url сайта простой конкатенацией строки, где меняется только номер комикса. Ну и source_url типа меняется, но он только в теории, потому что для какого-то другого сайта это всё работать не будет. Я не понимаю, для чего нам дана возможность менять source_url, если на другом сайте даже поля у json будут другие. Просто на случай изменения доменного имени сайта с коммиксами, да?
+// Мы немножечко запутались по поводу функционала флага -n, у меня он работает
+// как ограничитель количества обрабатываемых коммиксов. То есть без него в json
+// будет записано 2916 штук, а с ним json перезапишется с меньшим числом (n) комиксов
 
-package main
+package comic
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"slices"
+	"strconv"
+	"task2/words"
 
 	"gopkg.in/yaml.v2"
 )
@@ -31,23 +32,33 @@ type OutputData struct {
 	Keywords []string `json:"keywords"`
 }
 
-func MakeJSONwithComicsData () {
+// основная функция для экспорта
+func MakeJSONwithComicsData() {
 	// Чтение конфигурационного файла
 	source_url, db_file := readConfig()
-	max_num := 100
+
+	// Парсим флаги, получаем булёвое значение флага -о и максимальное число комиксов
+	oFlag, max_num := parsArguments()
 
 	//тут будут храниться конечные данные перед записью их в json
 	resultMap := make(map[int]OutputData)
 	//циклом проходимся по каждому из комиксов
-	for num := 1; num < max_num; num++ {
+	for num := 1; num <= max_num; num++ {
 		input := getDataOfOneComic(num, source_url) //получаем данные об одном комиксе
 		output := DataProcess(input)                //обрабатываем их
 		resultMap[input.Num] = output               //добавляем в результирующую мапу
+		//через каждые 100 делаем запись в json
+		if num%100 == 0 {
+			writeResultInJSON(resultMap, db_file)
+		}
 	}
-	//делаем json из результирующей мапы
+	//делаем финальную запись в json
 	writeResultInJSON(resultMap, db_file)
-}
 
+	if oFlag {
+		consolePrint(resultMap)
+	}
+}
 
 func readConfig() (string, string) {
 	// Чтение файла
@@ -90,9 +101,9 @@ func getDataOfOneComic(num int, source_url string) InputData {
 
 	//декодируем данные во временную структуру
 	var input InputData
-	if err := json.NewDecoder(resp.Body).Decode(&input); err != nil {
-		log.Print("Failed decoding from json: ", err)
-	}
+	json.NewDecoder(resp.Body).Decode(&input)
+	// пришлось убрать обработку ошибок при декодировании, тк она не давала парсить те комиксы, где
+	// некоторые поля были не заполнены
 
 	return input
 }
@@ -101,7 +112,7 @@ func getDataOfOneComic(num int, source_url string) InputData {
 func DataProcess(input InputData) OutputData {
 	//обрабатываем нормализатором
 	transcriptWithAlt := fmt.Sprint(input.Transcript, input.Alt) //описание и краткое описание сливаем в одну строку, чтобы для каждого нормализацию не делать отдельно
-	normalizated, err := WorldsNormalizator(transcriptWithAlt)
+	normalizated, err := words.WorldsNormalizator(transcriptWithAlt)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -145,5 +156,52 @@ func writeResultInJSON(resultMap map[int]OutputData, db_file string) {
 	err = os.WriteFile(db_file, dataBytes, 0)
 	if err != nil {
 		log.Fatal("Error writing to the json file: ", err)
+	}
+}
+
+// Парсинг аргументов командной строки
+func parsArguments() (bool, int) {
+	//первичный поиск флагов -n или -о
+	nFlag := flag.Bool("n", false, "Флаг -n")
+	oFlag := flag.Bool("o", false, "Флаг -o")
+	flag.Parse()
+
+	max_num := 2916 // дефолтное значение
+
+	// обрабатываем оставшиеся аргументы (ищем max_num после -n или флаг -о, если не нашли его вначале)
+	args := flag.Args()
+	//устанавливаем max_num
+	if *nFlag {
+		n_num, err := strconv.Atoi(args[0])
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Неверный формат числа: %s\n", args[0])
+		}
+		if max_num > 2916 {
+			log.Print("The maximum comic number cannot be more than 2916\n")
+		} else {
+			max_num = n_num
+		}
+	}
+	//без этого костыля не получилось найти флаг -о, если он стоит после -n
+	if slices.Contains(args, "-o") {
+		*oFlag = true
+	}
+
+	return *oFlag, max_num
+}
+
+// Печать результирующей мапы в консоль для флага -о
+func consolePrint(resultMap map[int]OutputData) {
+	for key, value := range resultMap {
+		fmt.Printf("Number: %d: {\n", key)
+		fmt.Printf("\tURL: %s\n", value.Url)
+		fmt.Printf("\tKey Words: [")
+		for i, word := range value.Keywords {
+			if i > 0 {
+				fmt.Print(", ")
+			}
+			fmt.Print(word)
+		}
+		fmt.Print("]\n}\n")
 	}
 }

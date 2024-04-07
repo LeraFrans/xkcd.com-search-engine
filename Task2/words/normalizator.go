@@ -1,6 +1,6 @@
 // Файл из Task1, ничего не меняла
 
-package main
+package words
 
 import (
 	"errors"
@@ -30,7 +30,7 @@ func deleteMostCommon(input []string) []string {
 		"their": {}, "what": {}, "so": {}, "if": {}, "who": {},
 		"get": {}, "which": {}, "when": {}, "can": {}, "him": {},
 		"your": {}, "some": {}, "them": {}, "then": {}, "its": {},
-		"also": {}, "us": {},
+		"also": {}, "us": {}, "": {}, "alt": {},
 	}
 	output := make([]string, len(input))
 	for _, elem := range input {
@@ -59,7 +59,7 @@ func unique(input []string) []string {
 func stemming(input []string) ([]string, error) {
 	var output []string
 	//do snowball.Stem() for each word
-	for _,  word := range input {
+	for _, word := range input {
 		stemmed, err := snowball.Stem(word, "english", true)
 		if err != nil {
 			return output, errors.New("stemming error")
@@ -69,7 +69,7 @@ func stemming(input []string) ([]string, error) {
 	return output, nil
 }
 
-//the final function
+// the final function
 func WorldsNormalizator(input string) ([]string, error) {
 	withoutPunctuationArray := trimPunctuation(strings.ToLower(input))
 	withoutCommonWordsArray := deleteMostCommon(withoutPunctuationArray)
