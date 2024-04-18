@@ -1,4 +1,4 @@
-# Yadro course
+# Поисковик по сайту xkcd.com
 Для курса "Разработка микросервисных приложений на Golang" от YADRO
 https://careers.yadro.com/practical-courses/golang/
 
