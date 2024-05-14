@@ -1,0 +1,13 @@
+comic:
+  source_url : https://xkcd.com
+  parallel : 7
+
+server:
+  port : 8080
+
+db:
+  db_file : "database/database.json"
+
+
+# Количество логических ядер на моём ноутбуке равно 8. 
+# Сделала -1 на всякий случай, чтобы одно ядро было свободно для других задач.
