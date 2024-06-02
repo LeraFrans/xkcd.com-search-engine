@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS keyword;
+
+DROP TABLE IF EXISTS words_index;
