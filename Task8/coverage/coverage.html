@@ -1,0 +1,1754 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>xkcd-server: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">task8/cmd/xkcd-server/main.go (0.0%)</option>
+				
+				<option value="file1">task8/config/config.go (75.0%)</option>
+				
+				<option value="file2">task8/pkg/handler/auth_hendler.go (84.0%)</option>
+				
+				<option value="file3">task8/pkg/handler/handler.go (25.0%)</option>
+				
+				<option value="file4">task8/pkg/handler/search_handler.go (100.0%)</option>
+				
+				<option value="file5">task8/pkg/handler/update_handler.go (85.2%)</option>
+				
+				<option value="file6">task8/pkg/repository/auth_sqlite.go (84.6%)</option>
+				
+				<option value="file7">task8/pkg/repository/repository.go (100.0%)</option>
+				
+				<option value="file8">task8/pkg/repository/search_sqlite.go (85.7%)</option>
+				
+				<option value="file9">task8/pkg/repository/sqlite.go (0.0%)</option>
+				
+				<option value="file10">task8/pkg/repository/update_sqlite.go (81.8%)</option>
+				
+				<option value="file11">task8/pkg/service/auth_logic.go (54.2%)</option>
+				
+				<option value="file12">task8/pkg/service/create_test_service.go (83.3%)</option>
+				
+				<option value="file13">task8/pkg/service/search_logic.go (81.0%)</option>
+				
+				<option value="file14">task8/pkg/service/service.go (100.0%)</option>
+				
+				<option value="file15">task8/pkg/service/update_comic_table_logic.go (86.2%)</option>
+				
+				<option value="file16">task8/pkg/service/update_index_table_logic.go (81.8%)</option>
+				
+				<option value="file17">task8/pkg/service/words_normalizator.go (93.5%)</option>
+				
+				<option value="file18">task8/testDB/Test_DB.go (68.2%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">no coverage</span>
+				<span class="cov1">low coverage</span>
+				<span class="cov2">*</span>
+				<span class="cov3">*</span>
+				<span class="cov4">*</span>
+				<span class="cov5">*</span>
+				<span class="cov6">*</span>
+				<span class="cov7">*</span>
+				<span class="cov8">*</span>
+				<span class="cov9">*</span>
+				<span class="cov10">high coverage</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package main
+
+import (
+        "fmt"
+        "log"
+        "net/http"
+        "sync"
+        "task8/config"
+        "task8/pkg/handler"
+        "task8/pkg/repository"
+        "task8/pkg/service"
+)
+
+func main() <span class="cov0" title="0">{
+
+        var wg sync.WaitGroup
+
+        db, err := repository.ConnectDB()
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatalf("failed to initializing db: %s", err.Error())
+        }</span>
+        <span class="cov0" title="0">defer db.Close()
+
+        // создание трёх слоёв: репозитория(работа с БД), сервиса(бизнес-логика) и хендлеров(связь с клиентом)
+        repos := repository.NewRepository(db)
+        services := service.NewService(repos)
+        hand := handler.NewHandler(services)
+
+        wg.Add(1)
+        go func() </span><span class="cov0" title="0">{
+                defer wg.Done()
+                // Инициализируем обработчики
+                hand.Init()
+                log.Println("Listening...")
+
+                // определяем порт
+                portInt := config.ReadConfig().Port
+                port := fmt.Sprintf(":%d", portInt)
+
+                // Запускаем сервер
+                log.Fatal(http.ListenAndServe(port, nil))
+        }</span>()
+
+        <span class="cov0" title="0">wg.Wait()</span>
+
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package config
+
+import (
+        "fmt"
+        "log"
+
+        "github.com/ilyakaznacheev/cleanenv"
+)
+
+type (
+        // Config -.
+        Config struct {
+                Comic  `yaml:"comic"`
+                Server `yaml:"server"`
+                DB     `yaml:"db"`
+        }
+
+        Comic struct {
+                Source_url string `env-required:"true" yaml:"source_url"    env:"COMIC_SOURCE_URL"`
+                Parallel   int    `env-required:"true" yaml:"parallel"    env:"COMIC_PARALLEL"`
+        }
+
+        Server struct {
+                Port                  int `env-required:"true" yaml:"port" env:"SERVER_PORT"`
+                Concurrency_limit     int `env-required:"true" yaml:"concurrency_limit" env:"SERVER_PORT"`
+                Rate_limit            int `env-required:"true" yaml:"rate_limit" env:"SERVER_PORT"`
+                Rate_limit_per_second int `env-required:"true" yaml:"rate_limit_per_second" env:"SERVER_PORT"`
+        }
+
+        DB struct {
+                DB_file string `env-required:"true" yaml:"db_file"   env:"DB_DB_FILE"`
+                Dsn     string `env-required:"true" yaml:"dsn"   env:"DB_DSN"`
+        }
+)
+
+// NewConfig returns app config.
+func NewConfig() (*Config, error) <span class="cov10" title="6169">{
+        cfg := &amp;Config{}
+
+        // err := cleanenv.ReadConfig("../../config/config.yaml", cfg)
+        err := cleanenv.ReadConfig("../../config/config.yaml", cfg)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("config error: %w", err)
+        }</span>
+
+        <span class="cov10" title="6169">err = cleanenv.ReadEnv(cfg)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov10" title="6169">return cfg, nil</span>
+}
+
+func ReadConfig() *Config <span class="cov10" title="6169">{
+        // Configuration
+        cfg, err := NewConfig()
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatalf("Config error: %s", err)
+        }</span>
+        <span class="cov10" title="6169">return cfg</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package handler
+
+import (
+        "context"
+        "encoding/json"
+        "fmt"
+        "log"
+        "net"
+        "net/http"
+        "sync"
+        "task8/config"
+        "time"
+
+        "golang.org/x/sync/semaphore"
+        "golang.org/x/time/rate"
+)
+
+// для ограничения общего количества запросов от разных клиентов в одно время
+var globalConcurrencyLimiter = semaphore.NewWeighted(int64(config.ReadConfig().Server.Concurrency_limit)) // Ограничиваем до 5 одновременных запросов
+
+type (
+        // Структура данных с информацией о пользователе
+        User struct {
+                Id       int    `json:"-" db:"id"`
+                Email    string `json:"email" binding:"required"`
+                Name     string `json:"name" binding:"required"`
+                Password string `json:"password" binding:"required"`
+                Role     int    `json:"role" binding:"required"` // 1 - admin, 0 - simple user
+        }
+
+        LoginResponse struct {
+                Token string `json:"token"`
+        }
+)
+
+func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) <span class="cov6" title="5">{
+        if r.Method != "POST" </span><span class="cov1" title="1">{
+                fmt.Fprintf(w, "Sorry, only POST methods are supported.\n")
+                w.WriteHeader(http.StatusMethodNotAllowed)
+                return
+        }</span>
+
+        // Получаем данные от пользователя
+        <span class="cov5" title="4">var credentials struct {
+                Email    string `json:"email"`
+                Password string `json:"password"`
+        }
+        err := json.NewDecoder(r.Body).Decode(&amp;credentials)
+        if err != nil </span><span class="cov0" title="0">{
+                fmt.Fprintf(w, "The request could not be decoded\n")
+                w.WriteHeader(http.StatusBadRequest)
+                return
+        }</span>
+
+        // Создаём токен
+        <span class="cov5" title="4">status, tokenString, err := h.services.Authorization.GenerateToken(credentials.Email, credentials.Password)
+        if err != nil </span><span class="cov3" title="2">{
+                log.Println(err)
+                w.WriteHeader(status)
+                return
+        }</span>
+
+        // Отправляем токен пользователю
+        <span class="cov3" title="2">response := LoginResponse{Token: tokenString}
+        json.NewEncoder(w).Encode(response)
+        w.Header().Set("Authorization", tokenString)</span>
+}
+
+// ограничитель запросов от одного клиента
+func perClientRateLimiter(next http.HandlerFunc) http.HandlerFunc <span class="cov1" title="1">{
+
+        type client struct {
+                limiter  *rate.Limiter // сколько раз может вызвать
+                lastSeen time.Time     // время последнего вызова
+        }
+
+        var mu sync.Mutex
+        var clients = make(map[string]*client) // коллекция клиентов, с которыми работаем сейчас
+
+        go func() </span><span class="cov1" title="1">{
+                // если с момента последнего запроса от клиента прошло больше 5 минут,
+                // то удаляем его из коллекции клиентов. И при следующем вызове он будет
+                // считаться опять как новый клиент.
+                for </span><span class="cov5" title="4">{
+                        time.Sleep(time.Minute)
+                        mu.Lock()
+                        for ip, client := range clients </span><span class="cov1" title="1">{
+                                if time.Since(client.lastSeen) &gt; 30*time.Second </span><span class="cov1" title="1">{
+                                        delete(clients, ip)
+                                }</span>
+                        }
+                        <span class="cov4" title="3">mu.Unlock()</span>
+                }
+        }()
+
+        <span class="cov1" title="1">return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) </span><span class="cov10" title="16">{
+                ip, _, err := net.SplitHostPort(r.RemoteAddr) // получение IP-адреса, с которого был запрос, будем ограничивать только его одного
+                if err != nil </span><span class="cov0" title="0">{
+                        fmt.Fprintf(w, "Failed to get an IP\n")
+                        w.WriteHeader(http.StatusInternalServerError)
+                        return
+                }</span>
+                <span class="cov10" title="16">mu.Lock()
+                // проверям, есть ли клиент с таким ip в нашей коллекции
+                if _, found := clients[ip]; !found </span><span class="cov1" title="1">{
+                        // если его нет, то делаем ему новый лимитер и добавляем в коллекцию
+                        clients[ip] = &amp;client{limiter: rate.NewLimiter(rate.Limit(config.ReadConfig().Rate_limit_per_second), config.ReadConfig().Rate_limit)} //(2 запроса в сек, максимум 10 от одного клиента за всё время (через 5 мин можно заново))
+                }</span>
+                <span class="cov10" title="16">clients[ip].lastSeen = time.Now() // обновляем клиенту дату проследнего запроса
+                if !clients[ip].limiter.Allow() </span><span class="cov6" title="6">{ // если ограничитель не разрешает больше делать запросы, шлём статус код ошибки
+                        mu.Unlock()
+                        fmt.Fprintf(w, "You have exceeded the request limit\n")
+                        w.WriteHeader(http.StatusTooManyRequests)
+                        return
+                }</span>
+                <span class="cov8" title="10">mu.Unlock()
+
+                // Пропускаем запрос через глобальный ограничитель concurrency limiter
+                if err := globalConcurrencyLimiter.Acquire(context.Background(), 1); err != nil </span><span class="cov0" title="0">{
+                        // Обработка ошибки, если не удалось получить разрешение на выполнение запроса
+                        fmt.Fprintf(w, "Failed to acquire semaphore: %v\n", err)
+                        return
+                }</span>
+                <span class="cov8" title="10">defer globalConcurrencyLimiter.Release(1)
+
+                // Вызываем следующую функцию-обработчик
+                next(w, r)</span>
+        })
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package handler
+
+import (
+        "net/http"
+        "task8/pkg/service"
+)
+
+type Handler struct {
+        services *service.Service
+}
+
+func NewHandler(services *service.Service) *Handler <span class="cov10" title="3">{
+        return &amp;Handler{services: services}
+}</span>
+
+func (h *Handler) Init() <span class="cov0" title="0">{
+
+        //все три хендлера пропускаем через функцию - ограничитель запросов от одного клиента
+        http.HandleFunc("GET /pics", perClientRateLimiter(http.HandlerFunc(h.handlePics)))
+        http.HandleFunc("POST /update", perClientRateLimiter(http.HandlerFunc(h.handleUpdate)))
+        http.HandleFunc("POST /login", perClientRateLimiter(http.HandlerFunc(h.handleLogin)))
+}</span>
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package handler
+
+import (
+        "encoding/json"
+        "fmt"
+        "net/http"
+)
+
+// GET запрос
+func (h *Handler) handlePics(w http.ResponseWriter, r *http.Request) <span class="cov10" title="3">{
+        if r.Method != "GET" </span><span class="cov1" title="1">{
+                fmt.Fprintf(w, "Sorry, only GET methods are supported.")
+                w.WriteHeader(http.StatusMethodNotAllowed)
+                return
+        }</span>
+
+        // обработка входящей строки
+        <span class="cov6" title="2">searchQuery := r.URL.Query().Get("search")
+
+        // поиск урлов
+        urls, errorString, statusCod := h.services.Search.SearchComics(searchQuery)
+        if statusCod != 200 </span><span class="cov1" title="1">{
+                http.Error(w, errorString, statusCod)
+                return
+        }</span>
+
+        // Ответ клиенту
+        <span class="cov1" title="1">w.WriteHeader(http.StatusOK)     // Возвращаем статус OK
+        json.NewEncoder(w).Encode(&amp;urls) // Кодируем структуру в JSON и отправляем клиенту
+
+        // сюда тоже результат отпринтовываем на всякий случай
+        fmt.Println("Your comics:")
+        for _, str := range urls </span><span class="cov6" title="2">{
+                fmt.Println(str)
+        }</span>
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package handler
+
+import (
+        "encoding/json"
+        "fmt"
+        "log"
+        "net/http"
+)
+
+// POST запрос
+func (h *Handler) handleUpdate(w http.ResponseWriter, r *http.Request) <span class="cov10" title="3">{
+        if r.Method != "POST" </span><span class="cov1" title="1">{
+                fmt.Fprintf(w, "Sorry, only POST methods are supported.")
+                w.WriteHeader(http.StatusMethodNotAllowed)
+                return
+        }</span>
+
+        // Получения JWT-токена из запроса
+        <span class="cov6" title="2">tokenString := r.Header.Get("Authorization")
+
+        // Проверка роли пользователя
+        isAdmin, errString, statusCode := h.services.Authorization.IsAdmin(tokenString)
+        if statusCode != 200 </span><span class="cov1" title="1">{
+                http.Error(w, errString, statusCode)
+        }</span>
+
+        <span class="cov6" title="2">if !isAdmin </span><span class="cov1" title="1">{
+                // если не админ, посылаем сообщение о недосаточных правах и выходим
+                w.WriteHeader(http.StatusForbidden)
+                fmt.Fprintf(w, "Access denied. You must have administrator privileges to perform this action.")
+                return
+        }</span>
+
+        // Включить миграцию, если нет БД
+        // database.Migrations()
+        // fmt.Println("Finish Migration")
+
+        <span class="cov1" title="1">fmt.Println("\nI do UPDATE DB...")
+
+        // создаём/обновляем таблицу комиксов + создаём ответ клиенту (количество новых комиксов и общее количество комиксов в базе)
+        fmt.Println("Start update keyword table...")
+        response, errComic := h.services.Update.UpdateComicTable()
+        if errComic != nil </span><span class="cov0" title="0">{
+                w.WriteHeader(http.StatusInternalServerError)
+                log.Print(errComic)
+        }</span>
+        <span class="cov1" title="1">fmt.Println("Finish update keyword table!")
+
+        // создаём/обновляем таблицу индексов
+        fmt.Println("Start update index table...")
+        errString, errIndex := h.services.Update.UpdateIndexTable()
+        if errIndex != nil </span><span class="cov0" title="0">{
+                http.Error(w, errString, http.StatusInternalServerError)
+                log.Print(errIndex)
+        }</span>
+        <span class="cov1" title="1">fmt.Println("Finish update index table!")
+
+        // Ответ клиенту
+        w.WriteHeader(http.StatusOK)         // Возвращаем статус OK
+        json.NewEncoder(w).Encode(&amp;response)</span> // Кодируем структуру в JSON и отправляем клиенту
+}
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package repository
+
+import (
+        "crypto/sha1"
+        "database/sql"
+        "fmt"
+        "net/http"
+)
+
+// полная информация о юзере из БД (пароль в виде зашифрованного хэша)
+type User struct {
+        Id       int    `json:"-" db:"id"`
+        Email    string `json:"email" binding:"required"`
+        Name     string `json:"name" binding:"required"`
+        Password string `json:"password" binding:"required"`
+        Role     int    `json:"role" binding:"required"` // 1 - admin, 0 - simple user
+}
+
+// для зависимостей
+type AuthSQLite struct {
+        db *sql.DB
+}
+
+func NewAuthSQLite(db *sql.DB) *AuthSQLite <span class="cov7" title="5">{
+        return &amp;AuthSQLite{db: db}
+}</span>
+
+// по введёнными пользователем email и паролю ищет юзера в БД и возвращает полный данные о нём (в виде структуры User)
+// возвращаемая string это описание ошибки, а int это её статус код, чтобы потом в хендлере вернуть
+func (r *AuthSQLite) GetUser(email, password string) (User, string, int) <span class="cov5" title="3">{
+
+        var user User
+
+        // Проверяем корректность предоставленных данных
+        if len(email) == 0 || len(password) == 0 </span><span class="cov1" title="1">{
+                return user, "The entered data is incorrect\n", http.StatusBadRequest
+        }</span>
+
+        // шифруем пароль
+        <span class="cov4" title="2">password_hash := GeneratePasswordHash(password)
+
+        // Проверяем наличие пользователя в базе данных
+        stmt, err := r.db.Prepare("SELECT id, email, name, password, role FROM users WHERE email = ? AND password = ?")
+        if err != nil </span><span class="cov0" title="0">{
+                return user, "Error prepare request", http.StatusInternalServerError
+        }</span>
+        <span class="cov4" title="2">defer stmt.Close()
+
+        err = stmt.QueryRow(email, password_hash).Scan(&amp;user.Id, &amp;user.Email, &amp;user.Name, &amp;user.Password, &amp;user.Role)
+        switch </span>{
+        case err == sql.ErrNoRows:<span class="cov1" title="1">
+                return user, "Wrong email or password", http.StatusNotFound</span>
+        case err != nil:<span class="cov0" title="0">
+                return user, "There is no user with this email", http.StatusInternalServerError</span>
+        }
+
+        //если всё ок
+        <span class="cov1" title="1">return user, "", 200</span>
+}
+
+// по ID пользователя определяет его роль (1 - админ, 0 - обычный юзер)
+func (r *AuthSQLite) GetRole(userID int) (int, error) <span class="cov4" title="2">{
+        stmt, err := r.db.Prepare("SELECT role FROM users WHERE id = ?")
+        if err != nil </span><span class="cov0" title="0">{
+                return 0, err
+        }</span>
+        <span class="cov4" title="2">defer stmt.Close()
+
+        var role int
+        err = stmt.QueryRow(userID).Scan(&amp;role)
+        if err != nil </span><span class="cov0" title="0">{
+                return 0, err
+        }</span>
+
+        <span class="cov4" title="2">return role, nil</span>
+}
+
+// возвращает закодированный хэш пароля
+func GeneratePasswordHash(password string) string <span class="cov10" title="8">{
+        hash := sha1.New()
+        hash.Write([]byte(password))
+
+        return fmt.Sprintf("%x", hash.Sum([]byte("hjqrhjqw124617ajfhajs")))
+}</span>
+
+// вспомогательная функция, тк не реализована регистрация пользователей, включить при надобности
+
+// func AddUsers() {
+//         // Подключаемся к БД
+//         db, errConnect := ConnectDB()
+//         if errConnect != nil {
+//                 log.Print(errConnect)
+//                 return
+//         }
+//         defer db.Close()
+
+//         // Добавление обычного пользователя
+//         user1 := User{
+//                 Email:    "user1@example.com",
+//                 Name:     "User One",
+//                 Password: GeneratePasswordHash("password1"),
+//                 Role:     0,
+//         }
+
+//         // Добавление обычного пользователя
+//         user2 := User{
+//                 Email:    "user2@example.com",
+//                 Name:     "User Two",
+//                 Password: GeneratePasswordHash("password2"),
+//                 Role:     0,
+//         }
+
+//         // Добавление администратора
+//         admin1 := User{
+//                 Email:    "admin@example.com",
+//                 Name:     "Administrator",
+//                 Password: GeneratePasswordHash("password3"),
+//                 Role:     1,
+//         }
+
+//         // Добавление пользователей в базу данных
+//         if _, err := db.Exec("INSERT INTO users (email, name, password, role) VALUES (?, ?, ?, ?)", user1.Email, user1.Name, user1.Password, user1.Role); err != nil {
+//                 log.Panicln(err)
+//         }
+//         if _, err := db.Exec("INSERT INTO users (email, name, password, role) VALUES (?, ?, ?, ?)", user2.Email, user2.Name, user2.Password, user2.Role); err != nil {
+//                 log.Panicln(err)
+//         }
+//         if _, err := db.Exec("INSERT INTO users (email, name, password, role) VALUES (?, ?, ?, ?)", admin1.Email, admin1.Name, admin1.Password, admin1.Role); err != nil {
+//                 log.Panicln(err)
+//         }
+// }
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">package repository
+
+import (
+        "database/sql"
+)
+
+type Authorization interface {
+        GetUser(email, password string) (User, string, int)
+        GetRole(userID int) (int, error)
+}
+
+type Update interface {
+        FindOurMaxNumberOfComics() (int, error)
+        WriteResultInKeywordTable(resultComicsSlice []Comic) error
+        GetDataForIndexTable() ([]Comic, error)
+        IsTableHasAnyRows(table_name string) bool
+        WriteResultInIndexTable(index map[string][]string) error
+}
+
+type Search interface {
+        FindInIndex(input_keywords []string) ([]IndexFromDB, error)
+        FindURL(indexes []IndexResult) ([]string, error)
+        IsTableHasAnyRows(table_name string) bool
+}
+
+type Repository struct {
+        Authorization
+        Update
+        Search
+}
+
+func NewRepository(db *sql.DB) *Repository <span class="cov10" title="5">{
+        return &amp;Repository{
+                Authorization: NewAuthSQLite(db),
+                Update: NewUpdateSQLite(db),
+                Search: NewSearchSQLite(db),
+        }
+}</span>
+</pre>
+		
+		<pre class="file" id="file8" style="display: none">package repository
+
+import (
+        "database/sql"
+        "log"
+)
+
+// для связи между слоями
+type SearchSQLite struct {
+        db *sql.DB
+}
+
+func NewSearchSQLite(db *sql.DB) *SearchSQLite <span class="cov10" title="6">{
+        return &amp;SearchSQLite{db: db}
+}</span>
+
+// информация об одном индексе, взятая из БД
+type IndexFromDB struct {
+        Word    string
+        Numbers string
+}
+
+// Для функции IndexSearch(). Ищет в таблице индексов нужные нам релевантные слова
+func (r *SearchSQLite) FindInIndex(input_keywords []string) ([]IndexFromDB, error) <span class="cov4" title="2">{
+
+        var result []IndexFromDB
+
+        // Я правда долго пыталась, используя плейсхолдеры и преобразования типов, засунуть это в один запрос,
+        // но ничего не получилось, поэтому вот отдельный запрос для каждого ключевого слова (какой кошмар)
+        for _, word := range input_keywords </span><span class="cov4" title="2">{
+
+                // запрос
+                row := r.db.QueryRow("SELECT word, numbers FROM words_index WHERE word = (?)", word)
+
+                // Считывание индекса из курсора
+                var y IndexFromDB
+                err := row.Scan(&amp;y.Word, &amp;y.Numbers)
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+
+                // Добавление индекса в слайс
+                <span class="cov4" title="2">result = append(result, y)</span>
+        }
+
+        <span class="cov4" title="2">return result, nil</span>
+}
+
+// по номерам комиксом ищем в бд их урлы
+func (r *SearchSQLite) FindURL(indexes []IndexResult) ([]string, error) <span class="cov4" title="2">{
+        result := []string{}
+        for _, index := range indexes </span><span class="cov1" title="1">{
+                row := r.db.QueryRow("SELECT url FROM keyword WHERE number = ?", index.Num)
+
+                // Считывание урла из курсора
+                var url string
+                err := row.Scan(&amp;url)
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+
+                // Добавление урла в слайс
+                <span class="cov1" title="1">result = append(result, url)</span>
+        }
+
+        <span class="cov4" title="2">return result, nil</span>
+}
+
+// Содержит ли таблица хоть одну запись (для проверки перед поиском)
+func (r *SearchSQLite) IsTableHasAnyRows(table_name string) bool <span class="cov4" title="2">{
+
+        // Проверка наличия хотя бы одной записи в таблице keyword
+        stmt2, err := r.db.Prepare("SELECT COUNT(*) FROM keyword")
+        if err != nil </span><span class="cov0" title="0">{
+                log.Println(err)
+        }</span>
+        <span class="cov4" title="2">defer stmt2.Close()
+
+        // Выполнение запроса и проверка результата
+        row := stmt2.QueryRow()
+        var count int
+        if err := row.Scan(&amp;count); err != nil </span><span class="cov0" title="0">{
+                log.Println(err)
+        }</span>
+
+        // Если count == 0, значит таблица пустая
+        <span class="cov4" title="2">return count &gt; 0</span>
+}
+</pre>
+		
+		<pre class="file" id="file9" style="display: none">package repository
+
+import (
+        "database/sql"
+        "errors"
+        "fmt"
+        "log"
+        "task8/config"
+
+        // Библиотека для миграций
+        "github.com/golang-migrate/migrate/v4"
+        // Драйвер для выполнения миграций SQLite 3
+        _ "github.com/golang-migrate/migrate/v4/database/sqlite3"
+        // Драйвер для получения миграций из файлов
+        _ "github.com/golang-migrate/migrate/v4/source/file"
+)
+
+func Migrations() <span class="cov0" title="0">{
+        var storagePath, migrationsPath, migrationsTable string
+
+        storagePath = "pkg/repository/database/xkcdDB.db"
+        migrationsPath = "schema"
+        migrationsTable = "migration_table"
+
+        // Создаем объект мигратора, передав креды нашей БД
+        m, err := migrate.New("file://"+migrationsPath,
+                fmt.Sprintf("sqlite3://%s?x-migrations-table=%s", storagePath, migrationsTable),
+        )
+        if err != nil </span><span class="cov0" title="0">{
+                log.Println(err)
+        }</span>
+
+        // Выполняем миграции до последней версии
+        <span class="cov0" title="0">if err := m.Up(); err != nil </span><span class="cov0" title="0">{
+                if errors.Is(err, migrate.ErrNoChange) </span><span class="cov0" title="0">{
+                        fmt.Println("no migrations to apply")
+                        return
+                }</span>
+                <span class="cov0" title="0">log.Println(err)</span>
+        }
+}
+
+// Создание подключения к базе данных (вызывается в хендлерах)
+func ConnectDB() (*sql.DB, error) <span class="cov0" title="0">{
+        db, err := sql.Open("sqlite3", config.ReadConfig().Dsn)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("Не удалось открыть базу данных: %v", err)
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">err = db.Ping()
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">return db, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file10" style="display: none">package repository
+
+import (
+        "database/sql"
+        "log"
+        "strings"
+)
+
+type UpdateSQLite struct {
+        db *sql.DB
+}
+
+func NewUpdateSQLite(db *sql.DB) *UpdateSQLite <span class="cov4" title="7">{
+        return &amp;UpdateSQLite{db: db}
+}</span>
+
+// информация об одном комиксе (уже обработанная)
+type Comic struct {
+        Num      int
+        Url      string
+        Keywords string
+}
+
+// финальная информация по индексному поиску, где каждому комиксу присваивается количество релевантных слов в нём
+type IndexResult struct {
+        Num                 int
+        CoutOfRevevantWords int
+        Url                 string
+}
+
+// сколько комиксов сейчас записано в базе
+func (r *UpdateSQLite) FindOurMaxNumberOfComics() (int, error) <span class="cov2" title="2">{
+
+        // Подготовка SQL запроса для получения максимального номера
+        stmt, errPrepare := r.db.Prepare("SELECT MAX(number) FROM keyword")
+        if errPrepare != nil </span><span class="cov0" title="0">{
+                return 0, errPrepare
+        }</span>
+        <span class="cov2" title="2">defer stmt.Close()
+
+        // Выполнение запроса
+        var maxNumber int
+        if errQuery := stmt.QueryRow().Scan(&amp;maxNumber); errQuery != nil </span><span class="cov1" title="1">{
+                log.Println(errQuery)
+                return 0, errQuery
+        }</span>
+
+        <span class="cov1" title="1">return maxNumber, nil</span>
+}
+
+// Содержит ли таблица хоть одну запись (для проверки перед поиском)
+func (r *UpdateSQLite) IsTableHasAnyRows(table_name string) bool <span class="cov2" title="2">{
+
+
+        // Проверка наличия хотя бы одной записи в таблице keyword
+        stmt2, err := r.db.Prepare("SELECT COUNT(*) FROM keyword")
+        if err != nil </span><span class="cov0" title="0">{
+                log.Println(err)
+        }</span>
+        <span class="cov2" title="2">defer stmt2.Close()
+
+        // Выполнение запроса и проверка результата
+        row := stmt2.QueryRow()
+        var count int
+        if err := row.Scan(&amp;count); err != nil </span><span class="cov0" title="0">{
+                log.Println(err)
+        }</span>
+
+        // Если count == 0, значит таблица пустая
+        <span class="cov2" title="2">return count &gt; 0</span>
+}
+
+// Записывает результат в БД в таблицу комиксов
+func (r *UpdateSQLite) WriteResultInKeywordTable(resultComicsSlice []Comic) error <span class="cov2" title="2">{
+
+        // Подготовка SQL-запросов для вставки данных
+        stmt, _ := r.db.Prepare("INSERT OR REPLACE INTO keyword (number, url, keywords) VALUES (?, ?, ?)")
+        defer stmt.Close()
+
+        // Запись данных из resultComicsSlice в базу данных
+        for _, data := range resultComicsSlice </span><span class="cov1" title="1">{
+                _, err := stmt.Exec(data.Num, data.Url, data.Keywords)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+        }
+
+        <span class="cov2" title="2">return nil</span>
+}
+
+// берёт инфу обо всех комиксах из таблицы с комиксами
+func (r *UpdateSQLite) GetDataForIndexTable() ([]Comic, error) <span class="cov2" title="2">{
+        // Запрос нужных данных
+        rows, err := r.db.Query("SELECT number, keywords FROM keyword")
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov2" title="2">defer rows.Close()
+
+        // Итерация по результатам запроса и заполнение слайса комиксов
+        comics := []Comic{}
+        for rows.Next() </span><span class="cov6" title="16">{
+                c := Comic{} // один комикс
+                err := rows.Scan(&amp;c.Num, &amp;c.Keywords)
+                if err != nil </span><span class="cov0" title="0">{
+                        log.Println(err)
+                        continue</span>
+                }
+                <span class="cov6" title="16">comics = append(comics, c)</span>
+        }
+
+        <span class="cov2" title="2">return comics, nil</span>
+}
+
+// записывает уже обработанную инфу в таблицу с индексами
+func (r *UpdateSQLite) WriteResultInIndexTable(index map[string][]string) error <span class="cov2" title="2">{
+        for word, numbers := range index </span><span class="cov10" title="86">{
+                _, err := r.db.Exec("insert or replace into words_index (word, numbers) values ($1, $2)",
+                        word, strings.Join(numbers, " "))
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+        }
+        <span class="cov2" title="2">return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file11" style="display: none">package service
+
+import (
+        "errors"
+        "fmt"
+        "net/http"
+        "task8/pkg/repository"
+        "time"
+
+        "github.com/dgrijalva/jwt-go"
+)
+
+// для связи между слоями
+type AuthService struct {
+        repo repository.Authorization
+}
+
+func NewAuthService(repo repository.Authorization) *AuthService <span class="cov10" title="5">{
+        return &amp;AuthService{repo: repo}
+}</span>
+
+const (
+        salt       = "hjqrhjqw124617ajfhajs"
+        signingKey = "qrkjk#4#%35FSFJlja#4353KSFjH"
+        tokenTTL   = 12 * time.Hour
+)
+
+type tokenClaims struct {
+        jwt.StandardClaims
+        UserId int `json:"user_id"`
+}
+
+// создаёт токен для аутентифицирующегося пользователя
+func (s *AuthService) GenerateToken(username, password string) (int, string, error) <span class="cov7" title="3">{
+
+        //получаем всю инфу о юзере из БД
+        user, errString, status := s.repo.GetUser(username, password)
+        if status != 200 </span><span class="cov7" title="3">{
+                return status, "", errors.New(errString)
+        }</span>
+
+        // генерируем токен
+        <span class="cov0" title="0">token := jwt.NewWithClaims(jwt.SigningMethodHS256, &amp;tokenClaims{
+                jwt.StandardClaims{
+                        ExpiresAt: time.Now().Add(tokenTTL).Unix(),
+                        IssuedAt:  time.Now().Unix(),
+                },
+                user.Id,
+        })
+
+        // возвращаем токен в виде зашифрованной строки
+        rezToken, err := token.SignedString([]byte(signingKey))
+        return 200, rezToken, err</span>
+}
+
+// парсит токен, потом по ID проверяет в бд, является ли юзер админом
+func (s *AuthService) IsAdmin (tokenString string) (bool, string, int) <span class="cov4" title="2">{
+        fmt.Printf("\nTOKEN STRING: %s\n", tokenString)
+
+        //получаем ID пользователя по токену
+        userID, err := s.ParseToken(tokenString)
+        if err != nil </span><span class="cov4" title="2">{
+                return false, "error parsing token", http.StatusUnauthorized
+        }</span>
+        <span class="cov0" title="0">fmt.Printf("USER ID: %d\n", userID)
+
+        // идёт в бд и возвращает роль пользователя
+        role, err := s.repo.GetRole(userID)
+        if err != nil </span><span class="cov0" title="0">{
+                return false, "error find user in DB", http.StatusInternalServerError
+        }</span>
+
+        <span class="cov0" title="0">return role == 1, "", http.StatusOK</span>
+}
+
+// по токену получает ID пользователя 
+func (s *AuthService) ParseToken(accessToken string) (int, error) <span class="cov4" title="2">{
+
+        // колбэк для проверки подписи токена
+        token, err := jwt.ParseWithClaims(accessToken, &amp;tokenClaims{}, func(token *jwt.Token) (interface{}, error) </span><span class="cov1" title="1">{
+                // Проверяем, что метод подписи является HMAC
+                if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok </span><span class="cov0" title="0">{
+                        return nil, errors.New("invalid signing method")
+                }</span>
+                // Возвращаем секретный ключ для проверки подписи.
+                <span class="cov1" title="1">return []byte(signingKey), nil</span>
+        })
+        <span class="cov4" title="2">if err != nil </span><span class="cov4" title="2">{
+                return 0, err
+        }</span>
+
+        // преобразуем в нужную нам структуру
+        <span class="cov0" title="0">claims, _ := token.Claims.(*tokenClaims)
+
+        // возвращаем ID пользователя
+        return claims.UserId, nil</span>
+}</pre>
+		
+		<pre class="file" id="file12" style="display: none">package service
+
+import (
+        "database/sql"
+        "log"
+        "task8/pkg/repository"
+        "task8/testDB"
+)
+
+func TestService() (*sql.DB, *Service) <span class="cov10" title="5">{
+        testDB, err := testDB.CreateTestDB("testDB.db")
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatalf("failed to initializing db: %s", err.Error())
+        }</span>
+        <span class="cov10" title="5">repos := repository.NewRepository(testDB)
+        services := NewService(repos)
+
+        return testDB, services</span>
+}
+</pre>
+		
+		<pre class="file" id="file13" style="display: none">package service
+
+import (
+        "fmt"
+        "net/http"
+        "sort"
+        "strconv"
+        "strings"
+        "task8/pkg/repository"
+
+        _ "github.com/mattn/go-sqlite3" // Импорт драйвера для SQLite
+)
+
+// для связи между слоями
+type SearchService struct {
+        repo repository.Search
+}
+
+func NewSearchService(repo repository.Search) *SearchService <span class="cov7" title="5">{
+        return &amp;SearchService{repo: repo}
+}</span>
+
+// самая верхняя из логики поиска функция
+// возвращаемая string это описание ошибки, а int это её статус код, чтобы потом в хендлере вернуть
+func (s *SearchService) SearchComics(searchQuery string) ([]string, string, int) <span class="cov3" title="2">{
+        // Получаем строку для поиска
+        normSearchQuery, _ := WordsNormalizator(searchQuery) // нормализуем и стеммим её
+
+        // Если таблица комиксов пустая, просим обновить базу
+        if !s.repo.IsTableHasAnyRows("keyword") </span><span class="cov1" title="1">{
+                return nil, "Keyword table is exist. Please, do /update request.", http.StatusBadRequest
+        }</span>
+
+        // поиск комиксов
+        <span class="cov1" title="1">indexes, err := s.IndexSearch(normSearchQuery) // ищем релевантные номера комиксов в таблице индексов
+        if err != nil </span><span class="cov1" title="1">{
+                return nil, "Error Index search", http.StatusInternalServerError
+        }</span>
+        <span class="cov0" title="0">urls, err := s.repo.FindURL(indexes) // по номерам смотрим урлы нужных комиксов
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, "Error findinf URL", http.StatusInternalServerError
+        }</span>
+
+        <span class="cov0" title="0">return urls, "", http.StatusOK</span>
+
+}
+
+// поиск номеров релевантных комиксов в таблице с индексами   (здесь input - слайс ключевых слов для поиска)
+func (s *SearchService) IndexSearch(input []string) ([]repository.IndexResult, error) <span class="cov1" title="1">{
+
+        finded, err := s.repo.FindInIndex(input) //все комиксы, где встречается хоть раз какое-то слово
+        if err != nil </span><span class="cov1" title="1">{
+                fmt.Printf("\n\nERROR IS: %v\n\n", err)
+                return nil, err
+        }</span>
+        <span class="cov0" title="0">occurrence := findOccurrence(finded) //теперь храним комикс и количество релевантных слов в нём
+
+        // Сортировка слайса по полю CoutOfRevevantWords
+        sort.Slice(occurrence, func(i, j int) bool </span><span class="cov0" title="0">{
+                return occurrence[i].CoutOfRevevantWords &gt; occurrence[j].CoutOfRevevantWords
+        }</span>)
+
+        // возвращаем только те номера комиксов, где больше всего слов (первые n из отсортированных, n определяетя в findRelevantCount())
+        <span class="cov0" title="0">return occurrence[:findRelevantCount(occurrence)], nil</span>
+}
+
+// считает, сколько релевантных слов в каждом комиксе
+func findOccurrence(indexes []repository.IndexFromDB) []repository.IndexResult <span class="cov1" title="1">{
+        occurrenceMap := make(map[int]int) // [номер комикса] -&gt; количество совпавших слов
+        for _, index := range indexes </span><span class="cov3" title="2">{
+                for _, n := range strToSliceOfInt(index.Numbers) </span><span class="cov7" title="6">{
+                        occurrenceMap[n]++
+                }</span>
+        }
+
+        // переводим в нужную структуру (костыль)
+        <span class="cov1" title="1">var result []repository.IndexResult
+        for number, count := range occurrenceMap </span><span class="cov6" title="4">{
+                r := repository.IndexResult{
+                        Num:                 number,
+                        CoutOfRevevantWords: count,
+                }
+                result = append(result, r)
+        }</span>
+        <span class="cov1" title="1">return result</span>
+}
+
+func strToSliceOfInt(str string) []int <span class="cov6" title="4">{
+        sliceOfString := strings.Split(str, " ")
+
+        var sliceOfInt []int
+
+        for _, s := range sliceOfString </span><span class="cov9" title="10">{
+                i, err := strconv.Atoi(s)
+                if err != nil </span><span class="cov1" title="1">{
+                        return []int{}
+                }</span>
+                <span class="cov9" title="9">sliceOfInt = append(sliceOfInt, i)</span>
+        }
+
+        <span class="cov5" title="3">return sliceOfInt</span>
+}
+
+// Ищем максимальное число комиксов для вывода
+// Либо 10, либо меньше, если количество релевантных слов меньше 2
+func findRelevantCount(all []repository.IndexResult) int <span class="cov3" title="2">{
+        result := 0
+
+        for _, elem := range all </span><span class="cov10" title="11">{
+                if elem.CoutOfRevevantWords == 1 || result == 10 </span><span class="cov1" title="1">{
+                        break</span>
+                }
+                <span class="cov9" title="10">result++</span>
+        }
+        <span class="cov3" title="2">return result</span>
+}
+</pre>
+		
+		<pre class="file" id="file14" style="display: none">package service
+
+import (
+        "os"
+        "task8/pkg/repository"
+)
+
+//go:generate mockgen -source=service.go -destination=mocks/mock.go
+
+type Authorization interface {
+        GenerateToken(username, password string) (int, string, error)
+        ParseToken(token string) (int, error)
+        IsAdmin (tokenString string) (bool, string, int)
+}
+
+type Update interface {
+        UpdateComicTable() (UpdateResponse, error)
+        UpdateIndexTable() (string, error)
+        signalHandler(c chan os.Signal, resultComicsSlice []repository.Comic, written *[]int)
+        findNumbersToGet(numbers chan int, max_num int) (int, error)
+}
+
+type Search interface {
+        SearchComics(searchQuery string) ([]string, string, int)
+        
+}
+
+type Service struct {
+        Authorization
+        Update
+        Search
+}
+
+func NewService(repos *repository.Repository) *Service <span class="cov10" title="5">{
+        return &amp;Service{
+                Authorization: NewAuthService(repos.Authorization),
+                Update:        NewUpdateService(repos.Update),
+                Search:        NewSearchService(repos.Search),
+        }
+}</span>
+</pre>
+		
+		<pre class="file" id="file15" style="display: none">package service
+
+import (
+        "bytes"
+        "encoding/json"
+        "errors"
+        "fmt"
+        "log"
+        "net/http"
+        "os"
+        "os/signal"
+        "strings"
+        "sync"
+        "syscall"
+        "task8/config"
+        "task8/pkg/repository"
+)
+
+type UpdateService struct {
+        repo repository.Update
+}
+
+func NewUpdateService(repo repository.Update) *UpdateService <span class="cov2" title="5">{
+        return &amp;UpdateService{repo: repo}
+}</span>
+
+// отчёт по обновлению таблицы комиксов
+type UpdateResponse struct {
+        Total int `json:"total"`
+        New   int `json:"new"`
+}
+
+// просто "временная структура", тут для удобства храним считанные с сайта данные об одном комиксе до обработки
+type DataFromXksdCom struct {
+        Num        int    `json:"num"`
+        Transcript string `json:"transcript"`
+        Alt        string `json:"alt"`
+        Img        string `json:"img"`
+}
+
+// вся логика обновления таблицы с комиксами
+// возвращает в структуре ответа для клиента количество новых комиксов и общее количество комиксов в бд
+func (s *UpdateService) UpdateComicTable() (UpdateResponse, error) <span class="cov1" title="1">{
+
+        max_num := findMaxNumberOfComics() //сколько всего комиксов на сайте xkcd.com в данный момент
+
+        var wg sync.WaitGroup
+
+        var resultComicsSlice []repository.Comic // слайс всех обработанных комиксов
+        numbers := make(chan int, max_num)       // в канале номера комиксов, подлежащие обработке
+        var written []int                        // номера комиксов, которые успели записать (для кэша)
+        mu := &amp;sync.Mutex{}                      // Мьютекс для синхронизации доступа к resultComicsSlice
+
+        // Устанавливаем обработчик сигнала SIGINT
+        c := make(chan os.Signal, 1)
+        signal.Notify(c, syscall.SIGINT)
+        go s.signalHandler(c, resultComicsSlice, &amp;written) // ловит и обрабатывает сигнал
+
+        // Заполняем канал numbers номерами комиксов, которые нужно обработать
+        countOfNewComics, err := s.findNumbersToGet(numbers, max_num)
+        if err != nil </span><span class="cov0" title="0">{
+                ErrResponse := UpdateResponse{}
+                return ErrResponse, err
+        }</span>
+
+        // Создаем пул горутин для выполнения запросов
+        <span class="cov1" title="1">for i := 0; i &lt; config.ReadConfig().Parallel; i++ </span><span class="cov3" title="7">{
+                // тут комикс достаётся с сайта и обрабатывается
+                wg.Add(1)
+                go func() </span><span class="cov3" title="7">{
+                        defer wg.Done()
+                        for num := range numbers </span><span class="cov9" title="2943">{
+                                oneComicFromXKCD := getDataOfOneComic(num)         // забирает данные об одном комиксе с сайта
+                                normalizatedComic := DataProcess(oneComicFromXKCD) // обрабатывает их до нужной нам формы
+                                fmt.Printf("Get %d go %d\n", num, i)
+                                // а тут комикс записывается в результирующий слайс и слайс для кэша
+                                wg.Add(1)
+                                go func() </span><span class="cov9" title="2943">{
+                                        defer wg.Done()
+                                        mu.Lock() // Захватываем мьютекс перед записью в результирующий слайс
+
+                                        resultComicsSlice = append(resultComicsSlice, normalizatedComic)
+                                        written = append(written, num) //запишем номер обработанного комикса в слайс для кэша
+                                        fmt.Printf("Write %d\n", num)
+                                        mu.Unlock() // Освобождаем мьютекс после записи
+                                }</span>()
+                        }
+                }()
+        }
+
+        <span class="cov1" title="1">wg.Wait()                                                 // Ожидаем завершения всех горутин
+        err = s.repo.WriteResultInKeywordTable(resultComicsSlice) // Записываем данные в JSON
+        os.Remove("written_comics.txt")                           // удаляем файл с кэшем
+
+        // формируем ответ (потом выше пойдёт клиенту)
+        response := UpdateResponse{
+                Total: max_num,
+                New:   countOfNewComics,
+        }
+        return response, err</span>
+}
+
+// Ловит сигнал об остновке программы (Ctrl+C) и безопасно завершает её
+func (s *UpdateService) signalHandler(c chan os.Signal, resultComicsSlice []repository.Comic, written *[]int) <span class="cov1" title="1">{
+        &lt;-c // Ожидаем сигнал SIGINT
+        // если прервана:
+        fmt.Println("\nПрограмма прервана.")
+        err := s.repo.WriteResultInKeywordTable(resultComicsSlice) //записываем в json то, что успели обработать
+        if err != nil </span><span class="cov0" title="0">{
+                log.Println(err)
+        }</span>
+        <span class="cov0" title="0">createCache(written) //создаём кэш с номерами записанных комиксов
+        os.Exit(0)</span>           // читала, что это антипатерн, но другое пока не смогла
+
+}
+
+// кладёт в канал номера комиксов для записи и возвращает их количество
+func (s *UpdateService) findNumbersToGet(numbers chan int, max_num int) (int, error) <span class="cov2" title="5">{
+
+        countToReturn := max_num // по умолчанию база пустая
+
+        // существует ли пустая дб
+        ok1 := s.repo.IsTableHasAnyRows("keyword")
+        // Проверяем, есть ли что-то в кэше
+        ok2, cache := readCache("written_comics.txt")
+
+        // если нет базы данных и нет кэша, заполняем все номера
+        if !ok1 </span><span class="cov1" title="2">{
+                for num := 1; num &lt;= max_num; num++ </span><span class="cov10" title="3043">{
+                        numbers &lt;- num
+                }</span>
+        } else<span class="cov2" title="3"> if ok1 &amp;&amp; ok2 </span><span class="cov1" title="1">{
+                // если есть кэш и бд, тоже заполняем канал, но пропускаем те комиксы, которые в кэше
+                for num := 1; num &lt;= max_num; num++ </span><span class="cov2" title="4">{
+                        if bytes.Contains(cache, []byte(fmt.Sprintf("%d", num))) </span><span class="cov1" title="2">{
+                                countToReturn--
+                                continue</span>
+                        }
+                        <span class="cov1" title="2">numbers &lt;- num</span>
+                }
+        } else<span class="cov1" title="2"> {
+                // Если есть непустая бд, но нет кэша, значит проверяем максимальное количество
+                // комиксов на сайте, сравниваем с нашей ДБ и если нужно, обновляем базу
+                // (кладём к канал недостающие номера)
+                realMax := max_num
+                ourMax, err := s.repo.FindOurMaxNumberOfComics()
+                if err != nil </span><span class="cov0" title="0">{
+                        return 0, errors.New("error finding our max number of comics")
+                }</span>
+
+                <span class="cov1" title="2">if realMax &gt; ourMax </span><span class="cov1" title="1">{
+                        for num := ourMax + 1; num &lt;= max_num; num++ </span><span class="cov6" title="96">{
+                                numbers &lt;- num
+                        }</span>
+                        <span class="cov1" title="1">countToReturn = realMax - ourMax</span>
+                }
+                <span class="cov1" title="2">if realMax == ourMax </span><span class="cov1" title="1">{
+                        countToReturn = 0 // если обновлять не нужно, то количество новых комиксов будет 0
+                }</span>
+        }
+
+        <span class="cov2" title="5">close(numbers)
+
+        return countToReturn, nil</span>
+
+}
+
+// Создаёт файл written_comics.txt в который записывает номера комиксов, которые успели записать в json
+func createCache(written *[]int) <span class="cov2" title="3">{
+
+        // Преобразование слайса чисел в слайс байт
+        byteSlice := []byte(fmt.Sprint(written))
+
+        // если уже есть старый кэш, то склеиваем старый и новый слайсы байтов
+        ok, old_byteSlice := readCache("written_comics.txt")
+        if ok </span><span class="cov1" title="1">{
+                byteSlice = append(old_byteSlice, byteSlice...)
+        }</span>
+
+        // Создаём файл кэша
+        <span class="cov2" title="3">file, err := os.Create("written_comics.txt")
+        if err != nil </span><span class="cov0" title="0">{
+                log.Println("Ошибка при создании файла:", err)
+        }</span>
+        <span class="cov2" title="3">defer file.Close()
+
+        // Запись слайса байт в файл
+        _, err = file.Write(byteSlice)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Println("Ошибка при записи в файл:", err)
+        }</span>
+}
+
+// Проверяет наличие кэша и если есть, достаёт оттуда данные
+func readCache(filename string) (bool, []byte) <span class="cov3" title="10">{
+
+        var bytes []byte
+
+        // Если файл не существует возвращаем FALSE
+        _, err := os.Stat(filename)
+        if err != nil </span><span class="cov3" title="7">{
+                if os.IsNotExist(err) </span><span class="cov3" title="7">{
+                        return false, bytes
+                }</span>
+        }
+
+        // Если кэш существует, считываем его и возвращаем TRUE и содержимое кэша
+        <span class="cov2" title="3">file, _ := os.Open(filename)
+        defer file.Close()
+        bytes, _ = os.ReadFile(filename)
+
+        return true, bytes</span>
+}
+
+// Возвращает данные об одном комиксе, полученные с сайта
+func getDataOfOneComic(num int) DataFromXksdCom <span class="cov9" title="2945">{
+
+        source_url := config.ReadConfig().Source_url
+
+        //собираем url
+        url := fmt.Sprint(source_url, "/", num, "/info.0.json")
+
+        //получаем данные от сервера
+        resp, err := http.Get(url)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Println("Failed to make a get request to the server: ", err)
+        }</span>
+        <span class="cov9" title="2945">defer resp.Body.Close()
+
+        var oneComicFromXKCD DataFromXksdCom
+        // Проверяем статус ответа
+        if resp.StatusCode != 200 </span><span class="cov1" title="2">{
+                log.Println("URL Not Found")
+        }</span> else<span class="cov9" title="2943"> {
+                //декодируем данные во временную структуру
+                json.NewDecoder(resp.Body).Decode(&amp;oneComicFromXKCD)
+                // пришлось убрать обработку ошибок при декодировании, тк она не давала парсить те комиксы, где
+                // некоторые поля были не заполнены
+        }</span>
+
+        <span class="cov9" title="2945">return oneComicFromXKCD</span>
+}
+
+// Нормализует данные об одном комиксе и оформляет их
+func DataProcess(oneComicFromXKCD DataFromXksdCom) repository.Comic <span class="cov9" title="2944">{
+        //обрабатываем нормализатором
+        transcriptWithAlt := fmt.Sprint(oneComicFromXKCD.Transcript, oneComicFromXKCD.Alt) //описание и краткое описание сливаем в одну строку, чтобы для каждого нормализацию не делать отдельно
+        normalizated, err := WordsNormalizator(transcriptWithAlt)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Println(err)
+        }</span>
+
+        //формируем элемент данных об одном коммиксе
+        <span class="cov9" title="2944">output := repository.Comic{
+                Num:      oneComicFromXKCD.Num,
+                Url:      oneComicFromXKCD.Img,
+                Keywords: strings.Join(normalizated, " "),
+        }
+
+        return output</span>
+}
+
+// проверяет, существует ли URL страница комикса
+func IsPageExists(num int) bool <span class="cov6" title="178">{
+
+        source_url := config.ReadConfig().Source_url
+
+        url := fmt.Sprint(source_url, "/", num, "/info.0.json") //собираем url
+        resp, err := http.Get(url)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Println("Ошибка при выполнении запроса:", err)
+        }</span>
+        // Закрываем ответ
+        <span class="cov6" title="178">defer resp.Body.Close()
+        // Проверяем статус ответа
+        if resp.StatusCode == 200 </span><span class="cov5" title="61">{
+                return true
+        }</span> else<span class="cov6" title="117"> {
+                return false
+        }</span>
+}
+
+// Возвращает максимальный номер комикса на сайте xkcd.com
+func findMaxNumberOfComics() int <span class="cov1" title="2">{
+
+        //return 2936
+
+        var num int = 100
+        var emptyNum int = -1
+        var lastNotEmptyNum int = -1
+
+        fmt.Println("I'm find max numbers of comics xkcd.com\nPlease, wait...")
+
+        for </span><span class="cov1" title="2">{
+                // с шагом в 100 к номерам комиксов от 100 до бесконечности делаем запросы к сайту
+                // останавливаемся на той сотке, где не найден комикс, записываем его в emptyNum
+                for ; emptyNum == -1; num += 100 </span><span class="cov5" title="60">{
+                        if !IsPageExists(num) </span><span class="cov1" title="2">{
+                                emptyNum = num
+                        }</span>
+                }
+                <span class="cov1" title="2">num -= 100
+
+                // От ненайденного сотого номера идём назад с шагом 1. Считаем количество
+                // отсутствующих комиксов счётчиком counterOfEmpty. При нахождении
+                // существующей страницы пишем её в lastNotEmptyNum
+                var counterOfEmpty int = 0
+                for ; lastNotEmptyNum == -1; num-- </span><span class="cov6" title="116">{
+                        if IsPageExists(num) </span><span class="cov1" title="2">{
+                                lastNotEmptyNum = num
+                        }</span> else<span class="cov6" title="114"> {
+                                counterOfEmpty++
+                        }</span>
+                }
+                // Проверяем счётчик пустых комиксов, если он меньше 10, то на всякий
+                // случай нужно сходить ещё и наверх от ненайденного сотого, вдуг эти ненайденные
+                // комиксы просто удалены
+                <span class="cov1" title="2">if counterOfEmpty &gt;= 10 </span><span class="cov1" title="2">{
+                        break</span>
+                } else<span class="cov0" title="0"> {
+                        flagRetry := 0
+                        num = emptyNum + 1
+                        for i := 0; i &lt; 10; i++ </span><span class="cov0" title="0">{
+                                if IsPageExists(num) </span><span class="cov0" title="0">{
+                                        flagRetry = 1 // нашли комикс, идём на следующую сотку и заново всё
+                                }</span>
+                        }
+                        <span class="cov0" title="0">if flagRetry == 0 </span><span class="cov0" title="0">{
+                                break</span>
+                        } // если не нашли правее существующих, выходим
+                }
+
+                // до сих пор не вышли, значит идём на следующую сотку
+                <span class="cov0" title="0">num = emptyNum + 100</span>
+        }
+
+        <span class="cov1" title="2">fmt.Println("Max number: ", lastNotEmptyNum)
+
+        return lastNotEmptyNum</span>
+}
+</pre>
+		
+		<pre class="file" id="file16" style="display: none">package service
+
+import (
+        "fmt"
+        "strings"
+)
+
+// для POST запроса, обновляет таблицу инвертированных индексов по таблице комиксов
+// возвращаемая строка это описание, где именно произошла ошибка
+func (s *UpdateService) UpdateIndexTable() (string, error) <span class="cov1" title="1">{
+
+        // считывает данные из таблицы комиксов 
+        comics, err := s.repo.GetDataForIndexTable()
+        if err != nil </span><span class="cov0" title="0">{
+                return "Error geting data from DB for index table", err
+        }</span>
+
+        // Создание инвертированного индекса
+        <span class="cov1" title="1">var index = make(map[string][]string)
+        for _, comic := range comics </span><span class="cov4" title="4">{
+                for _, keyword := range strings.Split(comic.Keywords, " ") </span><span class="cov10" title="47">{
+                        index[keyword] = append(index[keyword], fmt.Sprint(comic.Num))
+                }</span>
+        }
+
+        // вставка данных в БД в таблицу words_index
+        <span class="cov1" title="1">err = s.repo.WriteResultInIndexTable(index)
+        if err != nil </span><span class="cov0" title="0">{
+                return "Error writing data in index table", err
+        }</span>
+
+        <span class="cov1" title="1">return "", err</span>
+
+}
+</pre>
+		
+		<pre class="file" id="file17" style="display: none">// Файл из Task1, ничего не меняла
+
+package service
+
+import (
+        "errors"
+        "strings"
+        "unicode"
+
+        "github.com/kljensen/snowball"
+)
+
+//go:generate mockgen -source=words_normalizator.go -destination=mocks/mock1.go
+
+func trimPunctuation(st string) []string <span class="cov6" title="2946">{
+        // Splyce string into words. Use lambda function as separator
+        return strings.FieldsFunc(st, func(symbol rune) bool </span><span class="cov10" title="1612825">{
+                // Split on any character that is not  a letter or a number
+                return !unicode.IsLetter(symbol) &amp;&amp; !unicode.IsNumber(symbol)
+        }</span>)
+}
+
+func deleteMostCommon(input []string) []string <span class="cov6" title="2946">{
+        var commonWords = map[string]struct{}{
+                "a": {}, "and": {}, "be": {}, "have": {}, "i": {}, "me": {},
+                "in": {}, "of": {}, "that": {}, "the": {}, "to": {},
+                "m": {}, "s": {}, "ll": {}, "it": {}, "for": {}, "not": {},
+                "on": {}, "with": {}, "he": {}, "as": {}, "you": {}, "am": {},
+                "at": {}, "this": {}, "by": {}, "his": {}, "from": {},
+                "they": {}, "we": {}, "her": {}, "she": {}, "or": {}, "are": {},
+                "an": {}, "will": {}, "my": {}, "would": {}, "there": {},
+                "their": {}, "what": {}, "so": {}, "if": {}, "who": {},
+                "get": {}, "which": {}, "when": {}, "can": {}, "him": {},
+                "your": {}, "some": {}, "them": {}, "then": {}, "its": {},
+                "also": {}, "us": {}, "": {}, "alt": {}, " ": {},
+        }
+        output := make([]string, len(input))
+        for _, elem := range input </span><span class="cov8" title="286488">{
+                _, ok := commonWords[elem]
+                if !ok </span><span class="cov8" title="189600">{
+                        output = append(output, elem)
+                }</span>
+        }
+        <span class="cov6" title="2946">return output</span>
+}
+
+// removes duplicates
+func unique(input []string) []string <span class="cov6" title="2946">{
+        var output []string
+        set := map[string]bool{}
+        for _, elem := range input </span><span class="cov8" title="189600">{
+                set[elem] = true
+        }</span>
+        <span class="cov6" title="2946">for key := range set </span><span class="cov8" title="124781">{
+                output = append(output, key)
+        }</span>
+        <span class="cov6" title="2946">return output</span>
+}
+
+// modification of the word form
+func stemming(input []string) ([]string, error) <span class="cov6" title="2946">{
+        var output []string
+        //do snowball.Stem() for each word
+        for _, word := range input </span><span class="cov9" title="476088">{
+                stemmed, err := snowball.Stem(word, "english", true)
+                if err != nil </span><span class="cov0" title="0">{
+                        return output, errors.New("stemming error")
+                }</span>
+                <span class="cov9" title="476088">if stemmed != "" </span><span class="cov8" title="189600">{
+                        output = append(output, stemmed)
+                }</span>
+        }
+        <span class="cov6" title="2946">return output, nil</span>
+}
+
+// the final function
+func WordsNormalizator(input string) ([]string, error) <span class="cov6" title="2946">{
+        withoutPunctuationArray := trimPunctuation(strings.ToLower(input))
+        withoutCommonWordsArray := deleteMostCommon(withoutPunctuationArray)
+        stemmedArray, err := stemming(withoutCommonWordsArray)
+        result := unique(stemmedArray)
+        if err == nil </span><span class="cov6" title="2946">{
+                return result, nil
+        }</span>
+        <span class="cov0" title="0">return result, err</span>
+}
+</pre>
+		
+		<pre class="file" id="file18" style="display: none">package testDB
+
+import (
+        "database/sql"
+)
+
+func CreateTestDB(nameDB string) (*sql.DB, error) <span class="cov10" title="14">{
+        // Создание новой базы данных
+        db, err := sql.Open("sqlite3", nameDB)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        // Создание таблицы users
+        <span class="cov10" title="14">stmt, err := db.Prepare("CREATE TABLE IF NOT EXISTS users (Id INTEGER, Email TEXT, Name TEXT, password TEXT, Role INTEGER)")
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov10" title="14">_, err = stmt.Exec()
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        // Создание таблицы keyword
+        <span class="cov10" title="14">stmt, err = db.Prepare("CREATE TABLE IF NOT EXISTS keyword (number INTEGER, url TEXT, keywords TEXT)")
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov10" title="14">_, err = stmt.Exec()
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        // Создание таблицы words_index
+        <span class="cov10" title="14">stmt, err = db.Prepare("CREATE TABLE IF NOT EXISTS words_index (word TEXT, numbers TEXT)")
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov10" title="14">_, err = stmt.Exec()
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov10" title="14">return db, nil</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
