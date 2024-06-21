@@ -21,12 +21,15 @@ type (
 	}
 
 	Server struct {
-		Port int `env-required:"true" yaml:"port" env:"SERVER_PORT"`
+		Port                  int `env-required:"true" yaml:"port" env:"SERVER_PORT"`
+		Concurrency_limit     int `env-required:"true" yaml:"concurrency_limit" env:"SERVER_PORT"`
+		Rate_limit            int `env-required:"true" yaml:"rate_limit" env:"SERVER_PORT"`
+		Rate_limit_per_second int `env-required:"true" yaml:"rate_limit_per_second" env:"SERVER_PORT"`
 	}
 
 	DB struct {
 		DB_file string `env-required:"true" yaml:"db_file"   env:"DB_DB_FILE"`
-		Dsn string `env-required:"true" yaml:"dsn"   env:"DB_DSN"`
+		Dsn     string `env-required:"true" yaml:"dsn"   env:"DB_DSN"`
 	}
 )
 
@@ -34,6 +37,7 @@ type (
 func NewConfig() (*Config, error) {
 	cfg := &Config{}
 
+	// err := cleanenv.ReadConfig("../../config/config.yaml", cfg)
 	err := cleanenv.ReadConfig("./config/config.yaml", cfg)
 	if err != nil {
 		return nil, fmt.Errorf("config error: %w", err)
